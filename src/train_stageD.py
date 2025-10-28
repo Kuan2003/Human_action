@@ -6,6 +6,7 @@ import os, argparse
 from tqdm import tqdm
 import torch, torch.nn as nn
 from torch.utils.data import DataLoader, SubsetRandomSampler
+from torch.utils.tensorboard import SummaryWriter
 import datetime
 from datasets import HOISequenceDataset
 import models as models_module
@@ -34,6 +35,13 @@ def train(args):
     setup_environment()
     
     device = "cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu"
+    
+    # Setup TensorBoard
+    os.makedirs(args.out_dir, exist_ok=True)
+    log_dir = os.path.join(args.out_dir, "tensorboard_logs")
+    writer = SummaryWriter(log_dir=log_dir)
+    print(f"[D] TensorBoard logs will be saved to: {log_dir}")
+    
     ds = HOISequenceDataset(args.dataset_json, seq_len=args.seq_len, stride=args.stride)
     train_idx, val_idx = session_split(ds, val_ratio=args.val_ratio, seed=args.seed)
     train_loader = DataLoader(ds, batch_size=args.batch, sampler=SubsetRandomSampler(train_idx),
@@ -126,17 +134,40 @@ def train(args):
                 preds = logits.argmax(-1)
                 v_corr += (preds==labels).sum().item(); v_tot += B*args.seq_len
         val_acc = v_corr/max(1,v_tot)
-        print(f"[D] Epoch {epoch} val_acc={val_acc:.4f}")
+        val_loss_avg = v_loss/v_tot
+        train_acc = corr/max(1,total)
+        
+        # Log to TensorBoard
+        writer.add_scalar('Loss/Train', loss.item(), epoch)
+        writer.add_scalar('Loss/Validation', val_loss_avg, epoch)
+        writer.add_scalar('Accuracy/Train', train_acc, epoch)
+        writer.add_scalar('Accuracy/Validation', val_acc, epoch)
+        writer.add_scalar('Learning_Rate/Encoder', optimizer.param_groups[0]['lr'], epoch)
+        writer.add_scalar('Learning_Rate/LSTM', optimizer.param_groups[1]['lr'], epoch)
+        
+        print(f"[D] Epoch {epoch} | Train: loss={loss.item():.4f}, acc={train_acc:.4f} | Val: loss={val_loss_avg:.4f}, acc={val_acc:.4f}")
+        
         if val_acc > best:
             best = val_acc
-            os.makedirs(args.out_dir, exist_ok=True)
-            torch.save(model.state_dict(), os.path.join(args.out_dir, "finetune_best.pth"))
-            print("[D] Saved best")
+            torch.save({
+                "model": model.state_dict(),
+                "epoch": epoch,
+                "val_acc": val_acc,
+                "val_loss": val_loss_avg,
+                "train_acc": train_acc,
+                "args": vars(args)
+            }, os.path.join(args.out_dir, "finetune_best.pth"))
+            print(f"[D] ✅ Saved best model (val_acc={best:.4f})")
             
-        log_path = os.path.join(args["out_dir"], "train_log.txt")
+        # Log to text file
+        log_path = os.path.join(args.out_dir, "train_log.txt")
         with open(log_path, "a") as f:
-            f.write(f"{datetime.datetime.now()} | epoch={epoch} | train_loss={loss.item():.4f} | train_acc={corr/max(1,total):.4f} | val_loss={v_loss/v_tot:.4f} | val_acc={val_acc:.4f}\n")
-    print("[D] Done. Best val acc:", best)
+            f.write(f"{datetime.datetime.now()} | epoch={epoch} | train_loss={loss.item():.4f} | train_acc={train_acc:.4f} | val_loss={val_loss_avg:.4f} | val_acc={val_acc:.4f}\n")
+    # Close TensorBoard writer
+    writer.close()
+    print(f"[D] Training completed! Best val acc: {best:.4f}")
+    print(f"[D] TensorBoard logs saved to: {log_dir}")
+    print(f"[D] To view: tensorboard --logdir {log_dir}")
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
@@ -157,10 +188,11 @@ if __name__ == "__main__":
     p.add_argument("--pose_ckpt", default="outputs/stageB/pose_gnn_best.pth")
     p.add_argument("--stageA_ckpt", default="outputs/stageA/obj_encoder_best.pth")
     p.add_argument("--stageB_ckpt", default="outputs/stageB/pose_gnn_best.pth")
-    p.add_argument("--stageC_ckpt", default="outputs/stageC/fusion_best.pth")
+    p.add_argument("--stageC_ckpt", default="outputs/stageC/fusion_best.pth")   
     p.add_argument("--val_ratio", type=float, default=0.2)
     p.add_argument("--seed", type=int, default=123)
     p.add_argument("--workers", type=int, default=4)
     p.add_argument("--no_cuda", action="store_true")
+    p.add_argument("--tensorboard", action="store_true", help="Enable TensorBoard logging")
     args = p.parse_args()
     train(args)
