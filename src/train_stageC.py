@@ -15,7 +15,7 @@ import argparse
 import random
 import numpy as np
 from tqdm import tqdm
-
+import datetime
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, SubsetRandomSampler
@@ -261,7 +261,9 @@ def train(args):
                 "label2id": ds.label2id
             }, os.path.join(args.out_dir, "fusion_best.pth"))
             print("[C] Saved best fusion")
-
+        log_path = os.path.join(args["out_dir"], "train_log.txt")
+        with open(log_path, "a") as f:
+            f.write(f"{datetime.datetime.now()} | epoch={epoch} | train_acc={corr/tot_frames:.4f} | val_acc={val_acc:.4f} | train_loss={loss/tot_frames:.4f}|val_loss={v_loss/v_tot:.4f}\n")
     if writer:
         writer.close()
     print("[C] Done. Best val acc:", best)

@@ -6,7 +6,7 @@ import os, argparse
 from tqdm import tqdm
 import torch, torch.nn as nn
 from torch.utils.data import DataLoader, SubsetRandomSampler
-
+import datetime
 from datasets import HOISequenceDataset
 import models as models_module
 from environment_config import setup_environment
@@ -132,6 +132,10 @@ def train(args):
             os.makedirs(args.out_dir, exist_ok=True)
             torch.save(model.state_dict(), os.path.join(args.out_dir, "finetune_best.pth"))
             print("[D] Saved best")
+            
+        log_path = os.path.join(args["out_dir"], "train_log.txt")
+        with open(log_path, "a") as f:
+            f.write(f"{datetime.datetime.now()} | epoch={epoch} | train_loss={loss.item():.4f} | train_acc={corr/max(1,total):.4f} | val_loss={v_loss/v_tot:.4f} | val_acc={val_acc:.4f}\n")
     print("[D] Done. Best val acc:", best)
 
 if __name__ == "__main__":

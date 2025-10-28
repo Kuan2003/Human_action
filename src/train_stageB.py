@@ -163,8 +163,8 @@ def train(args):
             writer.add_scalar("acc/val", val_acc, epoch)
 
         # Save best
-        if val_acc > best:
-            best = val_acc
+        if val_loss < best:
+            best = val_loss
             torch.save({
                 "pose_gnn": pose_gnn.state_dict(),
                 "head": head.state_dict(),
@@ -173,7 +173,7 @@ def train(args):
             print("[B] Saved best PoseGNN checkpoint!")
 
     if writer: writer.close()
-    print(f"[B] Done. Best val acc: {best:.4f}")
+    print(f"[B] Done. Best val loss: {best:.4f}")
 
 
 # ===================== CLI =====================

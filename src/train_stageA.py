@@ -8,7 +8,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 from tqdm import tqdm
-
+import datetime
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader, SubsetRandomSampler
@@ -201,16 +201,20 @@ def train(args):
         val_acc = val_correct / val_total
         print(f"[A][Val] Epoch {epoch} | Loss: {val_loss/val_total:.4f} | Acc: {val_acc:.4f}")
 
-        if val_acc > best_acc:
-            best_acc = val_acc
+        if val_loss < best_loss:
+            best_loss = val_loss
             torch.save({
                 "encoder": model.state_dict(),
                 "head": head.state_dict(),
                 "label2id": ds.label2id
             }, os.path.join(args["out_dir"], "obj_encoder_best.pth"))
-            print(f"[A] ✅ Saved best model (val_acc={best_acc:.4f})")
+            print(f"[A] ✅ Saved best model (val_loss={best_loss:.4f})")
+        
+        log_path = os.path.join(args["out_dir"], "train_log.txt")
+        with open(log_path, "a") as f:
+            f.write(f"{datetime.datetime.now()} | epoch={epoch} | train_acc={train_acc:.4f} | val_acc={val_acc:.4f} | train_loss={total_loss/total_frames:.4f}|val_loss={val_loss/val_total:.4f}\n")
 
-    print(f"[A] Training finished. Best acc = {best_acc:.4f}")
+    print(f"[A] Training finished. Best loss = {best_loss:.4f}")
 
 
 # ----------------------------
