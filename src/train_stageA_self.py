@@ -94,7 +94,7 @@ class ObjectFrameDataset(Dataset):
 
 
 # =============================================================
-# NT-Xent Loss (fixed and stable)
+# NT-Xent Loss 
 # =============================================================
 class NTXentLoss(nn.Module):
     """

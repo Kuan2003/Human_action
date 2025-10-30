@@ -81,7 +81,7 @@ class HOISequenceDataset(Dataset):
                 obj_crop=rgb[y0:y1+1,x0:x1+1]
             else:
                 obj_crop=rgb
-            obj_crop=cv2.resize(obj_crop,(128,128))
+            # obj_crop=cv2.resize(obj_crop,(128,128))
             obj_tensor=self.transform(obj_crop)
             obj_imgs.append(obj_tensor)
             pose_nodes.append(torch.tensor(pose3d,dtype=torch.float32))

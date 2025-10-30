@@ -44,7 +44,7 @@ def setup_project():
     critical_paths = {
         'processed_data': 'processed_data_auto',
         'dataset_json': 'processed_data_auto/dataset.json',
-        'source_code': 'Human_action/Source/src',
+        'source_code': 'Source/src',  # Fixed: removed duplicate Human_action/
         'models_dir': 'outputs'
     }
     
@@ -107,12 +107,13 @@ def setup_project():
     print("\n🚀 READY TO RUN!")
     print("="*60)
     
-    base_cmd = f"cd {project_root} && python"
+    base_cmd = f"cd {project_root}/Source && python"
     
     print("Training commands:")
-    print(f"  Stage A: {base_cmd} src/train_stageA.py --dataset {dataset_path} --epochs 10 --batch 8")
+    print(f"  Stage A: {base_cmd} src/train_stageA.py --dataset_json {dataset_path} --epochs 10 --batch 8 --out_dir outputs/stageA")
     print(f"  Stage B: {base_cmd} src/train_stageB.py --dataset_json {dataset_path} --epochs 10 --batch 4 --gnn_type gcn --out_dir outputs/stageB")
     print(f"  Stage C: {base_cmd} src/train_stageC.py --dataset_json {dataset_path} --epochs 10 --batch 4 --out_dir outputs/stageC")
+    print(f"  Stage D: {base_cmd} src/train_stageD.py --dataset_json {dataset_path} --epochs 5 --batch 2 --out_dir outputs/stageD")
     
     # Save setup info
     setup_info = {
@@ -134,7 +135,7 @@ def setup_project():
     print(f"\n🔧 Environment variables:")
     print(f"export PROJECT_ROOT='{project_root}'")
     print(f"export DATASET_PATH='{dataset_path}'")
-    print(f"export PYTHONPATH='{src_dir}:$PYTHONPATH'")
+    print(f"export PYTHONPATH='{project_root}/Source/src:$PYTHONPATH'")
     
     return all_good
 

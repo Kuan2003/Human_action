@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.models as models
-from torch_geometric.nn import GCNConv, GraphSAGE
+from torch_geometric.nn import GCNConv, SAGEConv
 
 #-----Object encoder (CNN) -----
 class ObjectEncoder(nn.Module):
@@ -35,8 +35,8 @@ class PoseGNN_PyG(nn.Module):
         super().__init__()
         if model_type == "sage":
             # GraphSAGE requires num_layers parameter
-            self.conv1 = GraphSAGE(in_dim, hidden, num_layers=1)
-            self.conv2 = GraphSAGE(hidden, out_dim, num_layers=1)
+            self.conv1 = SAGEConv(in_dim, hidden)
+            self.conv2 = SAGEConv(hidden, out_dim)
         else:
             self.conv1 = GCNConv(in_dim, hidden)
             self.conv2 = GCNConv(hidden, out_dim)
